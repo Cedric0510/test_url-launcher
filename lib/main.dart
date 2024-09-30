@@ -1,97 +1,102 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:device_info_plus/device_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart'; // Import du package url_launcher
+import 'url_input_page.dart'; // Import de la page UrlInputPage
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
+// MyApp est le widget racine de l'application
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'WhatsApp, Email & SMS Launcher',
+      title: 'Gamification App',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: WhatsAppEmailSmsLauncher(),
+      home: const HomePage(),
     );
   }
 }
 
-class WhatsAppEmailSmsLauncher extends StatefulWidget {
-  const WhatsAppEmailSmsLauncher({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  _WhatsAppEmailSmsLauncherState createState() =>
-      _WhatsAppEmailSmsLauncherState();
+  _HomePageState createState() => _HomePageState();
 }
 
-class _WhatsAppEmailSmsLauncherState extends State<WhatsAppEmailSmsLauncher> {
-  final String phoneNumber =
-      '+33603283927'; // Numéro de téléphone pour WhatsApp et SMS
-  final String email = 'jaysonmansuy@icloud.com'; // Adresse e-mail
+class _HomePageState extends State<HomePage> {
+  int _experiencePercentage =
+      0; // Variable pour stocker le pourcentage d'expérience
+  int _level = 1; // Variable pour stocker le niveau de l'utilisateur
+  String _message = ''; // Variable pour stocker le message des paliers
 
-  bool _isPhone = false; // Variable pour savoir si l'appareil est un téléphone
-
-  @override
-  void initState() {
-    super.initState();
-    _checkIfPhone();
+  // Méthode appelée pour augmenter l'expérience
+  void _increaseExperience() {
+    setState(() {
+      if (_experiencePercentage < 100) {
+        _experiencePercentage += 10; // Incrémente l'expérience par 10%
+        if (_experiencePercentage > 100) {
+          _experiencePercentage = 100; // S'assurer que cela ne dépasse pas 100%
+        }
+      } else {
+        _experiencePercentage = 0; // Réinitialise à 0 après avoir atteint 100%
+        _level++; // Augmente le niveau de l'utilisateur
+        _checkLevelMessage(); // Vérifie si un palier de niveau est atteint
+      }
+    });
   }
 
-  // Vérification si l'appareil est un téléphone Android
-  void _checkIfPhone() async {
-    DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-    AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-
-    if (androidInfo.isPhysicalDevice) {
-      setState(() {
-        _isPhone = true;
-      });
-    }
-  }
-
-  // Fonction pour lancer WhatsApp
-  void _launchWhatsApp() async {
-    final String whatsappUrl = "https://wa.me/$phoneNumber";
-    if (await canLaunch(whatsappUrl)) {
-      await launch(whatsappUrl);
+  // Méthode pour vérifier le niveau et définir un message spécial
+  void _checkLevelMessage() {
+    if (_level % 10 == 0) {
+      if (_level == 10) {
+        _message = 'Meilleur vendeur de la région';
+      } else if (_level == 20) {
+        _message = 'Meilleur vendeur de France';
+      } else if (_level == 30) {
+        _message = 'Meilleur vendeur du monde';
+      } else if (_level == 40) {
+        _message = 'MEILLEUR VENDEUR DE TOUS LES TEMPS DU PONEY FRINGANT!!!!';
+      }
     } else {
-      throw 'Could not launch $whatsappUrl';
+      _message = ''; // Pas de message spécial si ce n'est pas un multiple de 10
     }
   }
 
-  // Fonction pour lancer l'email
-  void _launchEmail() async {
-    final Uri emailLaunchUri = Uri(
+  // Méthode pour lancer WhatsApp
+  Future<void> _launchWhatsApp() async {
+    const phone = '+123456789'; // Numéro de téléphone cible
+    final Uri whatsappUri = Uri.parse('https://wa.me/$phone');
+    if (!await launchUrl(whatsappUri)) {
+      throw 'Could not launch $whatsappUri';
+    }
+  }
+
+  // Méthode pour lancer un Email
+  Future<void> _launchEmail() async {
+    final Uri emailUri = Uri(
       scheme: 'mailto',
-      path: email,
-      query:
-          'subject=Contact&body=Bonjour,', // Vous pouvez personnaliser le sujet et le corps
+      path: 'example@example.com',
+      query: 'subject=Bonjour&body=Ceci est un test',
     );
-
-    if (await canLaunch(emailLaunchUri.toString())) {
-      await launch(emailLaunchUri.toString());
-    } else {
-      throw 'Could not launch $emailLaunchUri';
+    if (!await launchUrl(emailUri)) {
+      throw 'Could not launch $emailUri';
     }
   }
 
-  // Fonction pour envoyer un SMS
-  void _launchSMS() async {
-    final Uri smsLaunchUri = Uri(
+  // Méthode pour lancer un SMS
+  Future<void> _launchSms() async {
+    final Uri smsUri = Uri(
       scheme: 'sms',
-      path: phoneNumber,
-      query: 'body=Bonjour,', // Corps du message
+      path: '+123456789',
     );
-
-    if (await canLaunch(smsLaunchUri.toString())) {
-      await launch(smsLaunchUri.toString());
-    } else {
-      throw 'Could not launch $smsLaunchUri';
+    if (!await launchUrl(smsUri)) {
+      throw 'Could not launch $smsUri';
     }
   }
 
@@ -99,28 +104,89 @@ class _WhatsAppEmailSmsLauncherState extends State<WhatsAppEmailSmsLauncher> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Lancer WhatsApp, Email et SMS'),
+        title: const Text('Accueil Gamification'),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Compteur de niveau
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'NV: ',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '$_level',
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Barre d'expérience
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: LinearProgressIndicator(
+                value: _experiencePercentage /
+                    100, // Convertir le pourcentage en valeur comprise entre 0 et 1
+                minHeight: 20.0,
+                backgroundColor: Colors.grey[300],
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Expérience: $_experiencePercentage%',
+              style: const TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _increaseExperience,
+              child: const Text('Gagner de l\'expérience'),
+            ),
+            if (_message.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  _message,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    color: Colors.blueAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            const SizedBox(height: 40),
             ElevatedButton(
               onPressed: _launchWhatsApp,
-              child: const Text('Contactez via WhatsApp'),
+              child: const Text('Lancer WhatsApp'),
             ),
-            const SizedBox(height: 20), // Espace entre les boutons
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _launchEmail,
-              child: const Text('Envoyer un e-mail'),
+              child: const Text('Envoyer un Email'),
             ),
-            const SizedBox(height: 20), // Espace entre les boutons
-            // Si l'appareil est un smartphone, afficher le bouton SMS
-            if (_isPhone)
-              ElevatedButton(
-                onPressed: _launchSMS,
-                child: const Text('Envoyer un SMS'),
-              ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _launchSms,
+              child: const Text('Envoyer un SMS'),
+            ),
+            const SizedBox(height: 40),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const UrlInputPage(),
+                  ),
+                );
+              },
+              child: const Text('Entrer des URLs d\'annonces'),
+            ),
           ],
         ),
       ),
